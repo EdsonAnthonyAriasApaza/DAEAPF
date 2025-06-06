@@ -2,6 +2,12 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAEAPF", "DAEAPF\DAEAPF.csproj", "{A547A90C-F8F1-4B85-8DD4-3FF66070F96D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAEAPF.Domain", "DAEAPF.Domain\DAEAPF.Domain.csproj", "{461B0658-DBFF-41A1-8A48-D95E0D1CE334}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAEAPF.Infrastructure", "DAEAPF.Infrastructure\DAEAPF.Infrastructure.csproj", "{B23FD50A-6587-46BB-85C6-ACAF0EF7F09F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAEAPF.Application", "DAEAPF.Application\DAEAPF.Application.csproj", "{EAEB8AFF-777A-43FD-AD97-2C10516A6C63}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +18,17 @@ Global
 		{A547A90C-F8F1-4B85-8DD4-3FF66070F96D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A547A90C-F8F1-4B85-8DD4-3FF66070F96D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A547A90C-F8F1-4B85-8DD4-3FF66070F96D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{461B0658-DBFF-41A1-8A48-D95E0D1CE334}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{461B0658-DBFF-41A1-8A48-D95E0D1CE334}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{461B0658-DBFF-41A1-8A48-D95E0D1CE334}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{461B0658-DBFF-41A1-8A48-D95E0D1CE334}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B23FD50A-6587-46BB-85C6-ACAF0EF7F09F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B23FD50A-6587-46BB-85C6-ACAF0EF7F09F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B23FD50A-6587-46BB-85C6-ACAF0EF7F09F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B23FD50A-6587-46BB-85C6-ACAF0EF7F09F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EAEB8AFF-777A-43FD-AD97-2C10516A6C63}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EAEB8AFF-777A-43FD-AD97-2C10516A6C63}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EAEB8AFF-777A-43FD-AD97-2C10516A6C63}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EAEB8AFF-777A-43FD-AD97-2C10516A6C63}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
