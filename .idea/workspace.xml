@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="95993b4e-c95c-49e2-ab2b-26b8b0bcc204" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/DAEAPF.Infrastructure/DAEAPF.Infrastructure.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/DAEAPF.Infrastructure/DAEAPF.Infrastructure.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DAEAPF/DAEAPF.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/DAEAPF/DAEAPF.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DAEAPF/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DAEAPF/Program.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DAEAPF/appsettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/DAEAPF/appsettings.json" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectId" id="2yQhjNcZ6KwD095sfmZa2gDJHIy" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="95993b4e-c95c-49e2-ab2b-26b8b0bcc204" name="Changes" comment="" />
+      <created>1749772840219</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1749772840219</updated>
+    </task>
+    <servers />
+  </component>
+</project>
