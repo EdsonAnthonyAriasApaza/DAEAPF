@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace DAEAPF.Infrastructure.Models;
-
+namespace DAEAPF.Domain.Models;
 public partial class Negocio
 {
     public int Id { get; set; }

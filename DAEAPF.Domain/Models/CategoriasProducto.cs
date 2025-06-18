@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace DAEAPF.Infrastructure.Models;
+namespace DAEAPF.Domain.Models;
 
-public partial class EstadosProducto
+public partial class CategoriasProducto
 {
     public int Id { get; set; }
 
-    public string Estado { get; set; } = null!;
+    public string Nombre { get; set; } = null!;
 
     public virtual ICollection<Producto> Productos { get; set; } = new List<Producto>();
 }

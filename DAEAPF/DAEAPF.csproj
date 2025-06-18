@@ -12,6 +12,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\DAEAPF.Application\DAEAPF.Application.csproj" />
       <ProjectReference Include="..\DAEAPF.Infrastructure\DAEAPF.Infrastructure.csproj" />
     </ItemGroup>
 
