@@ -28,6 +28,10 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> Register(RegisterUserDto dto)
     {
+        // Validación automática del modelo
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState); // Devuelve errores de validación como respuesta
+
         var exists = await _context.Usuarios.AnyAsync(u => u.Correo == dto.Correo);
         if (exists)
             return BadRequest("Este correo ya está registrado.");
@@ -45,6 +49,7 @@ public class AuthController : ControllerBase
 
         return Ok(new { message = "Usuario registrado exitosamente." });
     }
+
 
     [HttpPost("login")]
     [AllowAnonymous]

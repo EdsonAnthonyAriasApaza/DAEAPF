@@ -1,9 +1,22 @@
-﻿namespace DAEAPF.Application.DTOs;
+﻿using System.ComponentModel.DataAnnotations;
 
-public class RegisterUserDto
+namespace DAEAPF.Application.DTOs
 {
-    public string Nombre { get; set; }
-    public string Correo { get; set; }
-    public string Contrasena { get; set; }
-    public string Rol { get; set; } = "cliente"; // por defecto
+    public class RegisterUserDto
+    {
+        [Required(ErrorMessage = "El nombre es obligatorio")]
+        [MinLength(2, ErrorMessage = "El nombre debe tener al menos 2 caracteres")]
+        public string Nombre { get; set; }
+
+        [Required(ErrorMessage = "El correo es obligatorio")]
+        [EmailAddress(ErrorMessage = "El formato del correo no es válido")]
+        public string Correo { get; set; }
+
+        [Required(ErrorMessage = "La contraseña es obligatoria")]
+        [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
+        public string Contrasena { get; set; }
+
+        [Required(ErrorMessage = "El rol es obligatorio")]
+        public string Rol { get; set; } = "cliente";
+    }
 }
