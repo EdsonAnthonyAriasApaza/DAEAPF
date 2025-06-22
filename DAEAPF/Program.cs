@@ -1,3 +1,4 @@
+using AspNetCoreRateLimit;
 using Microsoft.EntityFrameworkCore;
 using DAEAPF.Infrastructure.Context;
 using DAEAPF.Infrastructure; // <-- Asegúrate de importar tu namespace de Infrastructure
@@ -10,8 +11,6 @@ builder.Services.AddDbContext<NegociosAppContext>(options =>
         ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))));
 
 Console.WriteLine("Cadena de conexión: " + builder.Configuration.GetConnectionString("DefaultConnection"));
-
-
 
 // Agregar servicios de infraestructura (JWT, Hasher, Rate Limiting, etc.)
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -70,6 +69,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseIpRateLimiting();
 
 app.UseAuthentication(); // <-- IMPORTANTE: antes de UseAuthorization
 app.UseAuthorization();
