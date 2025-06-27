@@ -17,7 +17,6 @@ var builder = WebApplication.CreateBuilder(args);
 // =============================
 // CADENA DE CONEXIÓN
 // =============================
-
 string? mysqlUrl = Environment.GetEnvironmentVariable("MYSQL_URL");
 string connectionString;
 
@@ -44,6 +43,9 @@ else
 
 Console.WriteLine("Cadena de conexión: " + connectionString);
 
+// =============================
+// DB CONTEXT
+// =============================
 builder.Services.AddDbContext<NegociosAppContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
@@ -53,7 +55,25 @@ builder.Services.AddDbContext<NegociosAppContext>(options =>
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // =============================
-// CONTROLADORES
+// CORS
+// =============================
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+        policy =>
+        {
+            policy.WithOrigins(
+                    "https://daeapf-production.up.railway.app",
+                    "http://localhost:3000"
+                )
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
+});
+
+// =============================
+// CONTROLADORES Y SERVICIOS
 // =============================
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -99,13 +119,9 @@ var app = builder.Build();
 // =============================
 // PIPELINE HTTP
 // =============================
-
-// ✔ Leer flag para decidir si habilitar Swagger
-bool showSwagger = app.Environment.IsDevelopment() 
-                    || builder.Configuration.GetValue<bool>("ShowSwagger");
-
-if (showSwagger)
+if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("ShowSwagger"))
 {
+    app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
@@ -118,6 +134,9 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+// === HABILITAR CORS ===
+app.UseCors(MyAllowSpecificOrigins);
 
 app.UseIpRateLimiting();
 
