@@ -4,14 +4,14 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copia todos los archivos
+# Copiar todo el código
 COPY . .
 
-# Restaura dependencias
-RUN dotnet restore
+# Restaurar dependencias de toda la solución
+RUN dotnet restore DAEAPF.sln
 
-# Publica para producción
-RUN dotnet publish -c Release -o /app/publish
+# Publicar SOLO la capa API (entry point)
+RUN dotnet publish DAEAPF/DAEAPF.csproj -c Release -o /app/publish
 
 
 # =====================
@@ -20,11 +20,8 @@ RUN dotnet publish -c Release -o /app/publish
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 
-# Copia el resultado de la publicación
 COPY --from=build /app/publish .
 
-# Exponer el puerto (opcional pero recomendado)
 EXPOSE 8080
 
-# Start the app
 ENTRYPOINT ["dotnet", "DAEAPF.dll"]
