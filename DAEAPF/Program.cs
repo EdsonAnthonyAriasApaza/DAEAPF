@@ -99,9 +99,13 @@ var app = builder.Build();
 // =============================
 // PIPELINE HTTP
 // =============================
-if (app.Environment.IsDevelopment())
+
+// ✔ Leer flag para decidir si habilitar Swagger
+bool showSwagger = app.Environment.IsDevelopment() 
+                    || builder.Configuration.GetValue<bool>("ShowSwagger");
+
+if (showSwagger)
 {
-    app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
