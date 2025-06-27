@@ -13,12 +13,19 @@ using DAEAPF.Infrastructure; // <-- Asegúrate de importar tu namespace de Infra
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Agregar los servicios del contenedor
-builder.Services.AddDbContext<NegociosAppContext>(options =>
-    options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
-        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))));
 
-Console.WriteLine("Cadena de conexión: " + builder.Configuration.GetConnectionString("DefaultConnection"));
+
+// Agregar los servicios del contenedor
+// Leer la cadena de conexión desde el entorno o desde appsettings.json
+var connectionString = Environment.GetEnvironmentVariable("MYSQL_URL") 
+                       ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
+builder.Services.AddDbContext<NegociosAppContext>(options =>
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+
+Console.WriteLine("Cadena de conexión: " + connectionString);
+
+
 
 // Agregar servicios de infraestructura (JWT, Hasher, Rate Limiting, etc.)
 builder.Services.AddInfrastructure(builder.Configuration);
