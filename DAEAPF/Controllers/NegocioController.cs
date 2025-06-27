@@ -1,114 +1,123 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using DAEAPF.Infrastructure.Context;
-using DAEAPF.Domain.Models;
-using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
+using DAEAPF.Application.DTOs.Negocios;
+using DAEAPF.Application.Interfaces.Services.Negocios;
 
-namespace DAEAPF.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class NegocioController : ControllerBase
+namespace DAEAPF.Controllers
 {
-    private readonly NegociosAppContext _context;
-
-    public NegocioController(NegociosAppContext context)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class NegocioController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly INegocioService _negocioService;
 
-    // GET: api/Negocio
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
-    {
-        var negocios = await _context.Negocios
-            .Include(n => n.Usuario)
-            .Include(n => n.Estado)
-            .Include(n => n.Productos)
-            .ToListAsync();
+        public NegocioController(INegocioService negocioService)
+        {
+            _negocioService = negocioService;
+        }
 
-        return Ok(negocios);
-    }
+        /// <summary>
+        /// Obtener todos los negocios con filtros opcionales
+        /// </summary>
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetAll([FromQuery] NegocioFilterDto filter)
+        {
+            var result = await _negocioService.GetAllAsync(filter);
+            return Ok(result);
+        }
 
-    // GET: api/Negocio/5
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var negocio = await _context.Negocios
-            .Include(n => n.Usuario)
-            .Include(n => n.Estado)
-            .Include(n => n.Productos)
-            .FirstOrDefaultAsync(n => n.Id == id);
+        /// <summary>
+        /// Obtener detalle de un negocio por ID
+        /// </summary>
+        [HttpGet("{id}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetById(int id)
+        {
+            try
+            {
+                var result = await _negocioService.GetByIdAsync(id);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
 
-        if (negocio == null)
-            return NotFound();
+        /// <summary>
+        /// Crear un nuevo negocio (solo dueños autenticados)
+        /// </summary>
+        [HttpPost]
+        [Authorize(Roles = "negocio,admin")]
+        public async Task<IActionResult> Create([FromBody] CreateNegocioDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-        return Ok(negocio);
-    }
+            var ownerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
-    // POST: api/Negocio
-    [HttpPost]
-    [Authorize(Roles = "negocio,admin")]
-    public async Task<IActionResult> Create([FromBody] Negocio negocio)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userId == null)
-            return Unauthorized();
+            try
+            {
+                var result = await _negocioService.CreateAsync(dto, ownerId);
+                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
 
-        negocio.UsuarioId = int.Parse(userId);
-        negocio.FechaCreacion = DateTime.UtcNow;
+        /// <summary>
+        /// Actualizar información del negocio (solo dueño o admin)
+        /// </summary>
+        [HttpPut("{id}")]
+        [Authorize(Roles = "negocio,admin")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateNegocioDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-        _context.Negocios.Add(negocio);
-        await _context.SaveChangesAsync();
+            var requesterId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
-        return CreatedAtAction(nameof(GetById), new { id = negocio.Id }, negocio);
-    }
+            try
+            {
+                var result = await _negocioService.UpdateAsync(id, dto, requesterId);
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
 
-    // PUT: api/Negocio/5
-    [HttpPut("{id}")]
-    [Authorize(Roles = "negocio,admin")]
-    public async Task<IActionResult> Update(int id, [FromBody] Negocio negocio)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var userRole = User.FindFirstValue(ClaimTypes.Role);
+        /// <summary>
+        /// Eliminar negocio (solo dueño o admin)
+        /// </summary>
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "negocio,admin")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var requesterId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
-        var negocioExistente = await _context.Negocios.FindAsync(id);
-        if (negocioExistente == null)
-            return NotFound();
-
-        if (userRole != "admin" && negocioExistente.UsuarioId.ToString() != userId)
-            return Forbid();
-
-        // Solo actualizamos los campos permitidos
-        negocioExistente.Nombre = negocio.Nombre;
-        negocioExistente.Descripcion = negocio.Descripcion;
-        negocioExistente.Direccion = negocio.Direccion;
-        negocioExistente.Telefono = negocio.Telefono;
-        negocioExistente.Categoria = negocio.Categoria;
-        negocioExistente.EstadoId = negocio.EstadoId;
-
-        await _context.SaveChangesAsync();
-        return NoContent();
-    }
-
-    // DELETE: api/Negocio/5
-    [HttpDelete("{id}")]
-    [Authorize(Roles = "negocio,admin")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var userRole = User.FindFirstValue(ClaimTypes.Role);
-
-        var negocio = await _context.Negocios.FindAsync(id);
-        if (negocio == null)
-            return NotFound();
-
-        if (userRole != "admin" && negocio.UsuarioId.ToString() != userId)
-            return Forbid();
-
-        _context.Negocios.Remove(negocio);
-        await _context.SaveChangesAsync();
-        return NoContent();
+            try
+            {
+                await _negocioService.DeleteAsync(id, requesterId);
+                return Ok(new { message = "Negocio eliminado exitosamente." });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

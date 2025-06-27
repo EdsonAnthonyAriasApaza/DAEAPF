@@ -20,7 +20,7 @@ public partial class Negocio
 
     public int? EstadoId { get; set; }
 
-    public DateTime? FechaCreacion { get; set; }
+    public DateTime FechaCreacion { get; set; }
 
     public virtual EstadosNegocio? Estado { get; set; }
 

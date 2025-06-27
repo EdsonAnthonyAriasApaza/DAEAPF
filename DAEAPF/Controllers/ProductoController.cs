@@ -1,124 +1,116 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using DAEAPF.Infrastructure.Context;
-using DAEAPF.Domain.Models;
 using System.Security.Claims;
+using DAEAPF.Application.DTOs.Productos;
+using DAEAPF.Application.Interfaces.Services.Productos;
 
-namespace DAEAPF.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class ProductoController : ControllerBase
+namespace DAEAPF.Controllers
 {
-    private readonly NegociosAppContext _context;
-
-    public ProductoController(NegociosAppContext context)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ProductoController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly IProductoService _productoService;
 
-    // GET: api/Producto
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
-    {
-        var productos = await _context.Productos
-            .Include(p => p.Categoria)
-            .Include(p => p.Estado)
-            .Include(p => p.Negocio)
-            .ToListAsync();
+        public ProductoController(IProductoService productoService)
+        {
+            _productoService = productoService;
+        }
 
-        return Ok(productos);
-    }
+        /// <summary>
+        /// GET: api/Producto/Negocio/{negocioId}
+        /// Listar productos de un negocio específico (público)
+        /// </summary>
+        [HttpGet("Negocio/{negocioId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetByNegocio(int negocioId)
+        {
+            var productos = await _productoService.GetByNegocioIdAsync(negocioId);
+            return Ok(productos);
+        }
 
-    // GET: api/Producto/5
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var producto = await _context.Productos
-            .Include(p => p.Categoria)
-            .Include(p => p.Estado)
-            .Include(p => p.Negocio)
-            .FirstOrDefaultAsync(p => p.Id == id);
+        /// <summary>
+        /// POST: api/Producto
+        /// Crear producto (solo dueño o admin)
+        /// </summary>
+        [HttpPost]
+        [Authorize(Roles = "negocio,admin")]
+        public async Task<IActionResult> Create([FromBody] CreateProductDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-        if (producto == null)
-            return NotFound();
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var userRole = User.FindFirstValue(ClaimTypes.Role);
 
-        return Ok(producto);
-    }
+            try
+            {
+                var result = await _productoService.CreateAsync(dto, userId, userRole);
+                return CreatedAtAction(nameof(GetByNegocio), new { negocioId = result.NegocioId }, result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
 
-    // POST: api/Producto
-    [HttpPost]
-    [Authorize(Roles = "negocio,admin")]
-    public async Task<IActionResult> Create([FromBody] Producto producto)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var userRole = User.FindFirstValue(ClaimTypes.Role);
+        /// <summary>
+        /// PUT: api/Producto/{id}
+        /// Actualizar producto (solo dueño o admin)
+        /// </summary>
+        [HttpPut("{id}")]
+        [Authorize(Roles = "negocio,admin")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateProductDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-        var negocio = await _context.Negocios.FindAsync(producto.NegocioId);
-        if (negocio == null)
-            return BadRequest("Negocio no válido.");
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var userRole = User.FindFirstValue(ClaimTypes.Role);
 
-        if (userRole != "admin" && negocio.UsuarioId.ToString() != userId)
-            return Forbid();
+            try
+            {
+                var result = await _productoService.UpdateAsync(id, dto, userId, userRole);
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
 
-        producto.FechaCreacion = DateTime.UtcNow;
+        /// <summary>
+        /// DELETE: api/Producto/{id}
+        /// Eliminar producto (solo dueño o admin)
+        /// </summary>
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "negocio,admin")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var userRole = User.FindFirstValue(ClaimTypes.Role);
 
-        _context.Productos.Add(producto);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetById), new { id = producto.Id }, producto);
-    }
-
-    // PUT: api/Producto/5
-    [HttpPut("{id}")]
-    [Authorize(Roles = "negocio,admin")]
-    public async Task<IActionResult> Update(int id, [FromBody] Producto producto)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var userRole = User.FindFirstValue(ClaimTypes.Role);
-
-        var productoExistente = await _context.Productos
-            .Include(p => p.Negocio)
-            .FirstOrDefaultAsync(p => p.Id == id);
-
-        if (productoExistente == null)
-            return NotFound();
-
-        if (userRole != "admin" && productoExistente.Negocio.UsuarioId.ToString() != userId)
-            return Forbid();
-
-        productoExistente.Nombre = producto.Nombre;
-        productoExistente.Descripcion = producto.Descripcion;
-        productoExistente.Precio = producto.Precio;
-        productoExistente.CategoriaId = producto.CategoriaId;
-        productoExistente.EstadoId = producto.EstadoId;
-        productoExistente.ImagenUrl = producto.ImagenUrl;
-
-        await _context.SaveChangesAsync();
-        return NoContent();
-    }
-
-    // DELETE: api/Producto/5
-    [HttpDelete("{id}")]
-    [Authorize(Roles = "negocio,admin")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var userRole = User.FindFirstValue(ClaimTypes.Role);
-
-        var producto = await _context.Productos
-            .Include(p => p.Negocio)
-            .FirstOrDefaultAsync(p => p.Id == id);
-
-        if (producto == null)
-            return NotFound();
-
-        if (userRole != "admin" && producto.Negocio.UsuarioId.ToString() != userId)
-            return Forbid();
-
-        _context.Productos.Remove(producto);
-        await _context.SaveChangesAsync();
-        return NoContent();
+            try
+            {
+                await _productoService.DeleteAsync(id, userId, userRole);
+                return Ok(new { message = "Producto eliminado exitosamente." });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

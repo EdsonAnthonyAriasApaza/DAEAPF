@@ -1,4 +1,12 @@
 using AspNetCoreRateLimit;
+using DAEAPF.Application.Interfaces.Services;
+using DAEAPF.Application.Interfaces.Services.Negocios;
+using DAEAPF.Application.Interfaces.Services.Productos;
+using DAEAPF.Application.Interfaces.Services.Usuarios;
+using DAEAPF.Application.Services;
+using DAEAPF.Application.Services.Negocios;
+using DAEAPF.Application.Services.Productos;
+using DAEAPF.Application.Services.Usuarios;
 using Microsoft.EntityFrameworkCore;
 using DAEAPF.Infrastructure.Context;
 using DAEAPF.Infrastructure; // <-- Asegúrate de importar tu namespace de Infrastructure
@@ -17,6 +25,9 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 // Agregar servicios de controladores
 builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<INegocioService, NegocioService>();
+builder.Services.AddScoped<IProductoService, ProductoService>();
 
 // Agregar servicios de Swagger
 builder.Services.AddEndpointsApiExplorer();

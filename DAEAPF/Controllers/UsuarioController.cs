@@ -1,106 +1,123 @@
 ﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using DAEAPF.Domain.Models; // ajusta si tu modelo está en otro namespace
-using DAEAPF.Infrastructure.Context;
-using Microsoft.AspNetCore.Authorization; // ajusta si tu DbContext está aquí
-using DAEAPF.Infrastructure.Encryptor;
+using DAEAPF.Application.DTOs.Usuarios;
+using DAEAPF.Application.Interfaces.Services;
+using DAEAPF.Application.Interfaces.Services.Usuarios;
 
-namespace DAEAPF.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class UsuarioController : ControllerBase
+namespace DAEAPF.Controllers
 {
-    private readonly NegociosAppContext _context;
-    private readonly IPasswordHasher _hasher;
-
-    public UsuarioController(NegociosAppContext context, IPasswordHasher hasher)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class UsuarioController : ControllerBase
     {
-        _context = context;
-        _hasher = hasher;
-    }
+        private readonly IUsuarioService _usuarioService;
 
-    // GET: api/Usuario
-    
-    [HttpGet]
-    [Authorize(Roles = "admin")]
-    public async Task<IActionResult> GetAll()
-    {
-        var usuarios = await _context.Usuarios.ToListAsync();
-        return Ok(usuarios);
-    }
+        public UsuarioController(IUsuarioService usuarioService)
+        {
+            _usuarioService = usuarioService;
+        }
 
-    // GET: api/Usuario/{id}
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var usuario = await _context.Usuarios.FindAsync(id);
-        if (usuario == null)
-            return NotFound();
-        return Ok(usuario);
-    }
+        /// <summary>
+        /// Obtener todos los usuarios (solo para admin)
+        /// </summary>
+        [HttpGet]
+        [Authorize(Roles = "admin")]
+        public async Task<IActionResult> GetAll()
+        {
+            var usuarios = await _usuarioService.GetAllAsync();
+            return Ok(usuarios);
+        }
 
-    // POST: api/Usuario
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] Usuario usuario)
-    {
-        _context.Usuarios.Add(usuario);
-        await _context.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = usuario.Id }, usuario);
-    }
+        /// <summary>
+        /// Obtener usuario por ID
+        /// </summary>
+        [HttpGet("{id}")]
+        [Authorize]
+        public async Task<IActionResult> GetById(int id)
+        {
+            try
+            {
+                var usuario = await _usuarioService.GetByIdAsync(id);
+                return Ok(usuario);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
 
-    // PUT: api/Usuario/{id}
-    [HttpPut("{id}")]
-    [Authorize]
-    public async Task<IActionResult> Update(int id, [FromBody] Usuario usuario)
-    {
-        var userIdFromToken = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var userRole = User.FindFirstValue(ClaimTypes.Role);
+        /// <summary>
+        /// Actualizar datos del usuario (Nombre, Correo, Rol)
+        /// </summary>
+        [HttpPut("{id}")]
+        [Authorize]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateUserDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-        if (userIdFromToken == null)
-            return Unauthorized();
+            try
+            {
+                var requesterId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+                var requesterRole = User.FindFirstValue(ClaimTypes.Role);
 
-        // Si no es admin, solo puede modificar su propio perfil
-        if (userRole != "admin" && userIdFromToken != id.ToString())
-            return Forbid(); // 403 - No tiene permiso
+                var result = await _usuarioService.UpdateAsync(id, dto, requesterId, requesterRole);
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
 
-        // Verifica que el ID de la URL y el del body coincidan
-        if (id != usuario.Id)
-            return BadRequest();
+        /// <summary>
+        /// Cambiar contraseña del usuario autenticado
+        /// </summary>
+        [HttpPut("{id}/password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword(int id, [FromBody] ChangePasswordDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-        var usuarioExistente = await _context.Usuarios.FindAsync(id);
-        if (usuarioExistente == null)
-            return NotFound();
+            try
+            {
+                var requesterId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
-        // Actualizar campos
-        usuarioExistente.Nombre = usuario.Nombre;
-        usuarioExistente.Correo = usuario.Correo;
+                await _usuarioService.ChangePasswordAsync(id, dto, requesterId);
+                return Ok(new { message = "Contraseña actualizada exitosamente." });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
 
-        // Cifrar contraseña antes de guardar
-        usuarioExistente.ContrasenaHash = _hasher.Hash(usuario.ContrasenaHash);
-
-        // Solo un admin puede cambiar el rol
-        if (userRole == "admin")
-            usuarioExistente.Rol = usuario.Rol;
-
-        await _context.SaveChangesAsync();
-        return NoContent();
-    }
-
-
-
-    // DELETE: api/Usuario/{id}
-    [HttpDelete("{id}")]
-    [Authorize(Roles = "admin")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var usuario = await _context.Usuarios.FindAsync(id);
-        if (usuario == null)
-            return NotFound();
-
-        _context.Usuarios.Remove(usuario);
-        await _context.SaveChangesAsync();
-        return Ok(new { message = $"Usuario con ID {id} eliminado correctamente." });
+        /// <summary>
+        /// Eliminar usuario (solo admin)
+        /// </summary>
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "admin")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                await _usuarioService.DeleteAsync(id);
+                return Ok(new { message = $"Usuario con ID {id} eliminado correctamente." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

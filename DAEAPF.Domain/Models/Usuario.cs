@@ -14,7 +14,7 @@ public partial class Usuario
 
     public string? Rol { get; set; }
 
-    public DateTime? FechaRegistro { get; set; }
+    public DateTime FechaRegistro { get; set; }
 
     public virtual ICollection<Negocio> Negocios { get; set; } = new List<Negocio>();
 }
