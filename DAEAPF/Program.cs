@@ -9,40 +9,65 @@ using DAEAPF.Application.Services.Productos;
 using DAEAPF.Application.Services.Usuarios;
 using Microsoft.EntityFrameworkCore;
 using DAEAPF.Infrastructure.Context;
-using DAEAPF.Infrastructure; // <-- Asegúrate de importar tu namespace de Infrastructure
+using DAEAPF.Infrastructure;
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// =============================
+// CADENA DE CONEXIÓN
+// =============================
 
+string? mysqlUrl = Environment.GetEnvironmentVariable("MYSQL_URL");
+string connectionString;
 
-// Agregar los servicios del contenedor
-// Leer la cadena de conexión desde el entorno o desde appsettings.json
-var connectionString = Environment.GetEnvironmentVariable("MYSQL_URL") 
-                       ?? builder.Configuration.GetConnectionString("DefaultConnection");
+if (!string.IsNullOrWhiteSpace(mysqlUrl) && mysqlUrl.StartsWith("mysql://"))
+{
+    // Parsear Railway MYSQL_URL
+    var uri = new Uri(mysqlUrl);
+
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var username = userInfo[0];
+    var password = userInfo.Length > 1 ? userInfo[1] : "";
+
+    var server = uri.Host;
+    var port = uri.Port;
+    var database = uri.AbsolutePath.Trim('/');
+
+    connectionString = $"Server={server};Port={port};Database={database};User={username};Password={password};SslMode=None;";
+}
+else
+{
+    // Fallback local (appsettings.json)
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+}
+
+Console.WriteLine("Cadena de conexión: " + connectionString);
 
 builder.Services.AddDbContext<NegociosAppContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
-Console.WriteLine("Cadena de conexión: " + connectionString);
-
-
-
-// Agregar servicios de infraestructura (JWT, Hasher, Rate Limiting, etc.)
+// =============================
+// INFRAESTRUCTURA
+// =============================
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// Agregar servicios de controladores
+// =============================
+// CONTROLADORES
+// =============================
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<INegocioService, NegocioService>();
 builder.Services.AddScoped<IProductoService, ProductoService>();
 
-// Agregar servicios de Swagger
+// =============================
+// SWAGGER
+// =============================
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "DAEAPF API", Version = "v1" });
 
-    // Configuración JWT para Swagger
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -71,15 +96,17 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Configuración del pipeline HTTP
+// =============================
+// PIPELINE HTTP
+// =============================
 if (app.Environment.IsDevelopment())
 {
-    app.UseDeveloperExceptionPage(); // <-- mejor que mostrar un 404
+    app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "DAEAPF API V1");
-        c.RoutePrefix = string.Empty; // Swagger en la raíz
+        c.RoutePrefix = string.Empty;
     });
 }
 
@@ -90,7 +117,7 @@ app.UseRouting();
 
 app.UseIpRateLimiting();
 
-app.UseAuthentication(); // <-- IMPORTANTE: antes de UseAuthorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
