@@ -1,9 +1,7 @@
 using AspNetCoreRateLimit;
-using DAEAPF.Application.Interfaces.Services;
 using DAEAPF.Application.Interfaces.Services.Negocios;
 using DAEAPF.Application.Interfaces.Services.Productos;
 using DAEAPF.Application.Interfaces.Services.Usuarios;
-using DAEAPF.Application.Services;
 using DAEAPF.Application.Services.Negocios;
 using DAEAPF.Application.Services.Productos;
 using DAEAPF.Application.Services.Usuarios;
@@ -11,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 using DAEAPF.Infrastructure.Context;
 using DAEAPF.Infrastructure;
 using System;
+using DAEAPF.Application.Interfaces.Repositories;
+using DAEAPF.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -79,6 +79,12 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<INegocioService, NegocioService>();
 builder.Services.AddScoped<IProductoService, ProductoService>();
+builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<INegocioRepository, NegocioRepository>();
+builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
+
 
 // =============================
 // SWAGGER

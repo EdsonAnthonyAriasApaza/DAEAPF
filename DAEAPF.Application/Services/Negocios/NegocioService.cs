@@ -1,29 +1,24 @@
 ﻿using DAEAPF.Application.DTOs.Negocios;
 using DAEAPF.Application.Interfaces.Services.Negocios;
 using DAEAPF.Domain.Models;
-using DAEAPF.Infrastructure.Context;
+using DAEAPF.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
-
 
 namespace DAEAPF.Application.Services.Negocios
 {
     public class NegocioService : INegocioService
     {
-        private readonly NegociosAppContext _context;
+        private readonly INegocioRepository _negocioRepository;
 
-        public NegocioService(NegociosAppContext context)
+        public NegocioService(INegocioRepository negocioRepository)
         {
-            _context = context;
+            _negocioRepository = negocioRepository;
         }
 
         // Obtener todos con filtros
         public async Task<IEnumerable<NegocioResponseDto>> GetAllAsync(NegocioFilterDto filter)
         {
-            var query = _context.Negocios
-                .Include(n => n.Estado)
-                .Include(n => n.Usuario)
-                .Include(n => n.Productos)
-                .AsQueryable();
+            var query = _negocioRepository.Query();
 
             // Filtro por categoría exacta
             if (!string.IsNullOrWhiteSpace(filter.Categoria))
@@ -58,15 +53,10 @@ namespace DAEAPF.Application.Services.Negocios
             return negocios.Select(MapToResponseDto).ToList();
         }
 
-
         // Obtener uno por ID
         public async Task<NegocioResponseDto> GetByIdAsync(int id)
         {
-            var negocio = await _context.Negocios
-                .Include(n => n.Estado)
-                .Include(n => n.Usuario)
-                .Include(n => n.Productos)
-                .FirstOrDefaultAsync(n => n.Id == id);
+            var negocio = await _negocioRepository.GetByIdAsync(id);
 
             if (negocio == null)
                 throw new Exception("Negocio no encontrado");
@@ -88,17 +78,16 @@ namespace DAEAPF.Application.Services.Negocios
                 EstadoId = dto.EstadoId ?? 1 // Por defecto abierto o inicial
             };
 
-            _context.Negocios.Add(negocio);
-            await _context.SaveChangesAsync();
+            await _negocioRepository.AddAsync(negocio);
 
-            // Vuelve a cargar con includes para DTO
+            // Obtener con includes para DTO
             return await GetByIdAsync(negocio.Id);
         }
 
         // Actualizar
         public async Task<NegocioResponseDto> UpdateAsync(int id, UpdateNegocioDto dto, int requesterId)
         {
-            var negocio = await _context.Negocios.FirstOrDefaultAsync(n => n.Id == id);
+            var negocio = await _negocioRepository.GetByIdAsync(id);
 
             if (negocio == null)
                 throw new Exception("Negocio no encontrado");
@@ -114,7 +103,7 @@ namespace DAEAPF.Application.Services.Negocios
             negocio.Categoria = dto.Categoria;
             negocio.EstadoId = dto.EstadoId;
 
-            await _context.SaveChangesAsync();
+            await _negocioRepository.UpdateAsync(negocio);
 
             return await GetByIdAsync(negocio.Id);
         }
@@ -122,7 +111,7 @@ namespace DAEAPF.Application.Services.Negocios
         // Eliminar
         public async Task DeleteAsync(int id, int requesterId)
         {
-            var negocio = await _context.Negocios.FindAsync(id);
+            var negocio = await _negocioRepository.GetByIdAsync(id);
 
             if (negocio == null)
                 throw new Exception("Negocio no encontrado");
@@ -130,8 +119,7 @@ namespace DAEAPF.Application.Services.Negocios
             if (negocio.UsuarioId != requesterId)
                 throw new UnauthorizedAccessException();
 
-            _context.Negocios.Remove(negocio);
-            await _context.SaveChangesAsync();
+            await _negocioRepository.DeleteAsync(id);
         }
 
         // Mapeador privado

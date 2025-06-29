@@ -1,25 +1,25 @@
 ﻿using DAEAPF.Application.DTOs.Usuarios;
+using DAEAPF.Application.Interfaces.Repositories;
 using DAEAPF.Application.Interfaces.Services.Usuarios;
-using DAEAPF.Infrastructure.Context;
 using DAEAPF.Infrastructure.Encryptor;
-using Microsoft.EntityFrameworkCore;
+using DAEAPF.Infrastructure.Repositories;
 
 namespace DAEAPF.Application.Services.Usuarios
 {
     public class UsuarioService : IUsuarioService
     {
-        private readonly NegociosAppContext _context;
+        private readonly IUsuarioRepository _repository;
         private readonly IPasswordHasher _hasher;
 
-        public UsuarioService(NegociosAppContext context, IPasswordHasher hasher)
+        public UsuarioService(IUsuarioRepository repository, IPasswordHasher hasher)
         {
-            _context = context;
+            _repository = repository;
             _hasher = hasher;
         }
 
         public async Task<IEnumerable<UserResponseDto>> GetAllAsync()
         {
-            var usuarios = await _context.Usuarios.ToListAsync();
+            var usuarios = await _repository.GetAllAsync();
             return usuarios.Select(u => new UserResponseDto
             {
                 Id = u.Id,
@@ -32,7 +32,7 @@ namespace DAEAPF.Application.Services.Usuarios
 
         public async Task<UserResponseDto> GetByIdAsync(int id)
         {
-            var usuario = await _context.Usuarios.FindAsync(id)
+            var usuario = await _repository.GetByIdAsync(id)
                            ?? throw new Exception("Usuario no encontrado.");
 
             return new UserResponseDto
@@ -47,25 +47,22 @@ namespace DAEAPF.Application.Services.Usuarios
 
         public async Task<UserResponseDto> UpdateAsync(int id, UpdateUserDto dto, int requesterId, string requesterRole)
         {
-            var usuario = await _context.Usuarios.FindAsync(id)
+            var usuario = await _repository.GetByIdAsync(id)
                            ?? throw new Exception("Usuario no encontrado.");
 
-            // Permiso: admin o dueño de su cuenta
             if (requesterRole != "admin" && requesterId != id)
                 throw new UnauthorizedAccessException("No autorizado para actualizar este usuario.");
 
-            // Validar rol permitido
             if (dto.Rol != "cliente" && dto.Rol != "negocio")
                 throw new Exception("Rol inválido. Solo 'cliente' o 'negocio'.");
 
-            // Solo admin puede cambiar el rol
             if (requesterRole == "admin" || usuario.Id == requesterId)
                 usuario.Rol = dto.Rol;
 
             usuario.Nombre = dto.Nombre;
             usuario.Correo = dto.Correo;
 
-            await _context.SaveChangesAsync();
+            await _repository.UpdateAsync(usuario);
 
             return new UserResponseDto
             {
@@ -82,26 +79,20 @@ namespace DAEAPF.Application.Services.Usuarios
             if (requesterId != id)
                 throw new UnauthorizedAccessException("No autorizado para cambiar la contraseña de otro usuario.");
 
-            var usuario = await _context.Usuarios.FindAsync(id)
+            var usuario = await _repository.GetByIdAsync(id)
                            ?? throw new Exception("Usuario no encontrado.");
 
-            // Verificar contraseña actual
             if (!_hasher.Verify(dto.CurrentPassword, usuario.ContrasenaHash))
                 throw new Exception("La contraseña actual es incorrecta.");
 
-            // Asignar nueva contraseña hasheada
             usuario.ContrasenaHash = _hasher.Hash(dto.NewPassword);
 
-            await _context.SaveChangesAsync();
+            await _repository.UpdateAsync(usuario);
         }
 
         public async Task DeleteAsync(int id)
         {
-            var usuario = await _context.Usuarios.FindAsync(id)
-                           ?? throw new Exception("Usuario no encontrado.");
-
-            _context.Usuarios.Remove(usuario);
-            await _context.SaveChangesAsync();
+            await _repository.DeleteAsync(id);
         }
     }
 }

@@ -1,39 +1,33 @@
 ﻿using DAEAPF.Application.DTOs.Productos;
-using DAEAPF.Application.Interfaces.Services;
 using DAEAPF.Application.Interfaces.Services.Productos;
 using DAEAPF.Domain.Models;
-using DAEAPF.Infrastructure.Context;
-using Microsoft.EntityFrameworkCore;
+using DAEAPF.Infrastructure.Repositories;
 
 namespace DAEAPF.Application.Services.Productos
 {
     public class ProductoService : IProductoService
     {
-        private readonly NegociosAppContext _context;
+        private readonly IProductoRepository _productoRepository;
+        private readonly INegocioRepository _negocioRepository;
 
-        public ProductoService(NegociosAppContext context)
+        public ProductoService(IProductoRepository productoRepository, INegocioRepository negocioRepository)
         {
-            _context = context;
+            _productoRepository = productoRepository;
+            _negocioRepository = negocioRepository;
         }
 
         public async Task<IEnumerable<ProductResponseDto>> GetByNegocioIdAsync(int negocioId)
         {
-            var productos = await _context.Productos
-                .Where(p => p.NegocioId == negocioId)
-                .Include(p => p.Negocio)
-                .ToListAsync();
-
+            var productos = await _productoRepository.GetByNegocioIdAsync(negocioId);
             return productos.Select(MapToResponseDto).ToList();
         }
 
         public async Task<ProductResponseDto> CreateAsync(CreateProductDto dto, int userId, string userRole)
         {
-            // Verificar que el negocio exista
-            var negocio = await _context.Negocios.FindAsync(dto.NegocioId);
+            var negocio = await _negocioRepository.GetByIdAsync(dto.NegocioId);
             if (negocio == null)
                 throw new Exception("Negocio no encontrado.");
 
-            // Solo dueño del negocio o admin puede crear
             if (userRole != "admin" && negocio.UsuarioId != userId)
                 throw new UnauthorizedAccessException();
 
@@ -45,22 +39,18 @@ namespace DAEAPF.Application.Services.Productos
                 NegocioId = dto.NegocioId
             };
 
-            _context.Productos.Add(producto);
-            await _context.SaveChangesAsync();
+            await _productoRepository.AddAsync(producto);
 
             return MapToResponseDto(producto);
         }
 
         public async Task<ProductResponseDto> UpdateAsync(int id, UpdateProductDto dto, int userId, string userRole)
         {
-            var producto = await _context.Productos
-                .Include(p => p.Negocio)
-                .FirstOrDefaultAsync(p => p.Id == id);
+            var producto = await _productoRepository.GetByIdAsync(id);
 
             if (producto == null)
                 throw new Exception("Producto no encontrado.");
 
-            // Validar que sea dueño o admin
             if (userRole != "admin" && producto.Negocio.UsuarioId != userId)
                 throw new UnauthorizedAccessException();
 
@@ -68,26 +58,22 @@ namespace DAEAPF.Application.Services.Productos
             producto.Descripcion = dto.Descripcion;
             producto.Precio = dto.Precio;
 
-            await _context.SaveChangesAsync();
+            await _productoRepository.UpdateAsync(producto);
 
             return MapToResponseDto(producto);
         }
 
         public async Task DeleteAsync(int id, int userId, string userRole)
         {
-            var producto = await _context.Productos
-                .Include(p => p.Negocio)
-                .FirstOrDefaultAsync(p => p.Id == id);
+            var producto = await _productoRepository.GetByIdAsync(id);
 
             if (producto == null)
                 throw new Exception("Producto no encontrado.");
 
-            // Validar que sea dueño o admin
             if (userRole != "admin" && producto.Negocio.UsuarioId != userId)
                 throw new UnauthorizedAccessException();
 
-            _context.Productos.Remove(producto);
-            await _context.SaveChangesAsync();
+            await _productoRepository.DeleteAsync(id);
         }
 
         // 🔁 Mapping interno
